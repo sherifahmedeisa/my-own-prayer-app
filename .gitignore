@@ -8,5 +8,5 @@
 /captures
 .externalNativeBuild
 .cxx
-*.apk
 *.aab
+!PrayerTimes.apk

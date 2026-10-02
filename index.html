@@ -525,13 +525,29 @@ body {
   <!-- Daily Schedule Table -->
   <section class="prayers-card" id="prayers-list"></section>
 
-  <!-- PWA Install & Home Screen Section -->
+  <!-- Android Native APK & Home Widget Section -->
+  <section class="action-box" style="border: 1px solid var(--uw-gold-border); background: var(--uw-card);">
+    <div style="font-size:0.75rem; font-weight:800; color:var(--uw-gold); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">
+      ⚡ Android Home Screen Counter Widget
+    </div>
+    <div style="font-size:0.75rem; color:var(--uw-text2); margin-bottom:12px; line-height:1.45;">
+      Android launchers require the native app to display a real home screen counter widget. Download and install the APK below:
+    </div>
+    <a class="btn-primary" id="btn-download-apk" href="PrayerTimes.apk" download="PrayerTimes.apk">
+      <span>📥 Download Android App (APK with Widget)</span>
+    </a>
+    <a class="btn-outline" href="https://github.com/sherifahmedeisa/my-own-prayer-app/releases" target="_blank" rel="noopener">
+      <span>📦 GitHub Releases &amp; Direct Downloads</span>
+    </a>
+  </section>
+
+  <!-- PWA Install Section -->
   <section class="action-box" id="pwa-install-box">
-    <button class="btn-primary" id="btn-install-app">
-      <span>★ Add to Home Screen</span>
+    <button class="btn-outline" id="btn-install-app" style="margin-top:0;">
+      <span>📱 Install Web App Icon (PWA)</span>
     </button>
     <a class="btn-outline" href="?widget=1">
-      <span>📱 View as Home Widget Counter (?widget=1)</span>
+      <span>⏱️ Compact Web Widget View (?widget=1)</span>
     </a>
   </section>
 
@@ -867,6 +883,22 @@ $('btn-install-app').onclick = async () => {
     alert("To install on your Android home screen: tap your browser's menu (⋮) in the top-right corner and select 'Add to Home screen' or 'Install app'.");
   }
 };
+
+const apkBtn = $('btn-download-apk');
+if (apkBtn) {
+  apkBtn.onclick = async (e) => {
+    try {
+      const res = await fetch('PrayerTimes.apk', { method: 'HEAD' });
+      if (!res.ok) {
+        e.preventDefault();
+        window.location.href = 'https://github.com/sherifahmedeisa/my-own-prayer-app/releases/download/latest/PrayerTimes.apk';
+      }
+    } catch {
+      e.preventDefault();
+      window.location.href = 'https://github.com/sherifahmedeisa/my-own-prayer-app/releases/download/latest/PrayerTimes.apk';
+    }
+  };
+}
 
 /* ========================================================
    SERVICE WORKER REGISTRATION & INIT
