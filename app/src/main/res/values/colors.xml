@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Dark Emerald & Gold Theme -->
     <color name="bg_dark">#080B09</color>
     <color name="surface_dark">#0D1512</color>
     <color name="surface_card">#131C17</color>
@@ -14,4 +15,17 @@
     <color name="text_muted">#526B5C</color>
     <color name="green_accent">#4ADE80</color>
     <color name="red_accent">#E57373</color>
+
+    <!-- Warm Cream Theme -->
+    <color name="cream_page">#E9E0CB</color>
+    <color name="cream_bg">#F5EFE1</color>
+    <color name="cream_surface">#FAF5EA</color>
+    <color name="cream_card">#ECE3CF</color>
+    <color name="cream_border">#E0D4BA</color>
+    <color name="cream_border_subtle">#D0C0A0</color>
+    <color name="cream_gold">#8A6F3A</color>
+    <color name="cream_gold_secondary">#6D5528</color>
+    <color name="cream_text_primary">#3A2E1A</color>
+    <color name="cream_text_secondary">#6B5A3E</color>
+    <color name="cream_text_muted">#9C8866</color>
 </resources>

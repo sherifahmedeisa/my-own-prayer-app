@@ -13,7 +13,6 @@ import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -87,13 +86,31 @@ class PrayerWidget : AppWidgetProvider() {
         val ids = mgr.getAppWidgetIds(ComponentName(context, PrayerWidget::class.java))
         if (ids.isEmpty()) return
 
+        val sp = context.getSharedPreferences("prayer_cache", Context.MODE_PRIVATE)
+        val theme = sp.getString("theme", "dark") ?: "dark"
+        val isCream = (theme == "cream")
+
         val views = RemoteViews(context.packageName, R.layout.widget)
 
-        // Tapping the widget body opens MainActivity
+        // Tapping widget body opens MainActivity
         views.setOnClickPendingIntent(R.id.widget_root, pendingActivity(context, 100))
 
-        // Tapping the refresh text triggers instant refresh
+        // Tapping refresh triggers instant update
         views.setOnClickPendingIntent(R.id.btn_refresh, pendingBroadcast(context, 101))
+
+        // Theme colors & backgrounds
+        val colorGold = if (isCream) Color.parseColor("#8A6F3A") else Color.parseColor("#F5C030")
+        val colorTextPrimary = if (isCream) Color.parseColor("#3A2E1A") else Color.parseColor("#F4F7F5")
+        val colorTextSecondary = if (isCream) Color.parseColor("#6B5A3E") else Color.parseColor("#8FA898")
+        val colorTextMuted = if (isCream) Color.parseColor("#9C8866") else Color.parseColor("#526B5C")
+        val bgRoot = if (isCream) R.drawable.widget_bg_cream else R.drawable.widget_bg
+        val bgActivePrayer = if (isCream) R.drawable.widget_active_prayer_bg_cream else R.drawable.widget_active_prayer_bg
+
+        views.setInt(R.id.widget_root, "setBackgroundResource", bgRoot)
+        views.setTextColor(R.id.widget_title, colorTextSecondary)
+        views.setTextColor(R.id.btn_refresh, colorGold)
+        views.setTextColor(R.id.label, colorTextSecondary)
+        views.setTextColor(R.id.count, colorGold)
 
         try {
             val now = System.currentTimeMillis()
@@ -105,21 +122,21 @@ class PrayerWidget : AppWidgetProvider() {
             val zone = ZoneId.systemDefault()
             val timeFormatter = DateTimeFormatter.ofPattern("h:mm")
 
-            // Update title
+            // Title
             views.setTextViewText(R.id.widget_title, "Prayer Times · ${PrayerConfig.CITY_NAME.split(",")[0]}")
 
-            // Update Next label
+            // Next label
             val enName = PrayerConfig.EN_NAMES[nextName] ?: nextName.replaceFirstChar { it.uppercase() }
             val arName = PrayerConfig.AR_NAMES[nextName] ?: ""
             views.setTextViewText(R.id.label, "NEXT: ${enName.uppercase()} · $arName")
 
-            // Configure live chronometer countdown
+            // Chronometer countdown
             views.setViewVisibility(R.id.count, View.VISIBLE)
             views.setChronometerCountDown(R.id.count, true)
             val remainingRealtime = SystemClock.elapsedRealtime() + (nextAt - now)
             views.setChronometer(R.id.count, remainingRealtime, null, true)
 
-            // Update prayer columns
+            // 5 prayers
             val rowViews = mapOf(
                 "fajr" to R.id.p_fajr,
                 "dhuhr" to R.id.p_dhuhr,
@@ -138,18 +155,18 @@ class PrayerWidget : AppWidgetProvider() {
                 views.setTextViewText(viewId, "$label\n$timeStr")
 
                 if (p == nextName) {
-                    views.setTextColor(viewId, Color.parseColor("#F5C030"))
-                    views.setInt(viewId, "setBackgroundResource", R.drawable.widget_active_prayer_bg)
+                    views.setTextColor(viewId, colorGold)
+                    views.setInt(viewId, "setBackgroundResource", bgActivePrayer)
                 } else if (prayerTimeMs != null && prayerTimeMs < now) {
-                    views.setTextColor(viewId, Color.parseColor("#526B5C"))
+                    views.setTextColor(viewId, colorTextMuted)
                     views.setInt(viewId, "setBackgroundResource", 0)
                 } else {
-                    views.setTextColor(viewId, Color.parseColor("#F4F7F5"))
+                    views.setTextColor(viewId, colorTextPrimary)
                     views.setInt(viewId, "setBackgroundResource", 0)
                 }
             }
 
-            // Schedule alarm for the exact moment the next prayer arrives
+            // Reschedule alarm when prayer arrives
             scheduleNextAlarm(context, nextAt + 1200L)
 
         } catch (e: Exception) {

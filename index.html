@@ -173,6 +173,12 @@ body {
   color: var(--uw-gold);
   border-color: var(--uw-gold-border);
 }
+.theme-pill.active-theme {
+  color: var(--uw-gold) !important;
+  border-color: var(--uw-gold) !important;
+  background: var(--uw-gold-bg) !important;
+  font-weight: 700;
+}
 
 /* Status Badge */
 .status-bar {
@@ -497,7 +503,8 @@ body {
       </div>
     </div>
     <div class="uw-header-actions">
-      <button class="btn-icon" id="theme-btn" title="Toggle theme">Dark</button>
+      <button class="btn-icon theme-pill" id="theme-dark-btn" onclick="setTheme('dark')">🌙 Dark</button>
+      <button class="btn-icon theme-pill" id="theme-cream-btn" onclick="setTheme('cream')">📜 Cream</button>
       <a class="btn-icon" href="?widget=1" title="Open compact widget mode">Widget ↗</a>
     </div>
   </header>
@@ -836,17 +843,16 @@ function startTimer() {
 /* ========================================================
    THEME HANDLER
    ======================================================== */
-const THEMES = ['dark', 'light', 'cream'];
 function setTheme(t) {
   document.documentElement.dataset.theme = t;
-  $('theme-btn').textContent = t.charAt(0).toUpperCase() + t.slice(1);
+  const darkBtn = $('theme-dark-btn');
+  const creamBtn = $('theme-cream-btn');
+  if (darkBtn) darkBtn.classList.toggle('active-theme', t === 'dark');
+  if (creamBtn) creamBtn.classList.toggle('active-theme', t === 'cream');
   try { localStorage.setItem('pt_theme', t); } catch {}
 }
-$('theme-btn').onclick = () => {
-  const cur = document.documentElement.dataset.theme || 'dark';
-  setTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
-};
-setTheme(localStorage.getItem('pt_theme') || 'dark');
+const urlTheme = new URLSearchParams(location.search).get('theme');
+setTheme(urlTheme || localStorage.getItem('pt_theme') || 'dark');
 
 /* ========================================================
    MANUAL SYNC TRIGGER
