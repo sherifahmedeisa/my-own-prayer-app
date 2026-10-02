@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1512">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Prayer Times">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<script>
+(function() {
+  var q = new URLSearchParams(location.search);
+  if (q.get('widget') === '1') {
+    document.documentElement.classList.add('widget-mode');
+  }
+})();
+</script>
+
+<title>Prayer Times & Widget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+:root, [data-theme="dark"] {
+  --uw-bg: #0d1512;
+  --uw-surface: #141c18;
+  --uw-card: #0f1814;
+  --uw-border: #1e2e27;
+  --uw-border-subtle: #263d32;
+  --uw-text: #f4f7f5;
+  --uw-text2: #8fa898;
+  --uw-text3: #526b5c;
+  --uw-gold: #f5c030;
+  --uw-gold2: #d4a020;
+  --uw-gold-bg: rgba(245, 192, 48, 0.12);
+  --uw-gold-border: rgba(245, 192, 48, 0.35);
+  --uw-active: #1a2b22;
+  --page: #080b09;
+}
+
+[data-theme="light"] {
+  --uw-bg: #fafaf7;
+  --uw-surface: #ffffff;
+  --uw-card: #f2f2eb;
+  --uw-border: #e8e8e0;
+  --uw-border-subtle: #d6d6ce;
+  --uw-text: #1a1a1a;
+  --uw-text2: #5a5a5a;
+  --uw-text3: #8a8a8a;
+  --uw-gold: #b8902a;
+  --uw-gold2: #9a7620;
+  --uw-gold-bg: rgba(184, 144, 42, 0.12);
+  --uw-gold-border: rgba(184, 144, 42, 0.3);
+  --uw-active: #f0e8d0;
+  --page: #eeeee8;
+}
+
+[data-theme="cream"] {
+  --uw-bg: #f5efe1;
+  --uw-surface: #faf5ea;
+  --uw-card: #ece3cf;
+  --uw-border: #e0d4ba;
+  --uw-border-subtle: #d0c0a0;
+  --uw-text: #3a2e1a;
+  --uw-text2: #6b5a3e;
+  --uw-text3: #9c8866;
+  --uw-gold: #8a6f3a;
+  --uw-gold2: #6d5528;
+  --uw-gold-bg: rgba(138, 111, 58, 0.12);
+  --uw-gold-border: rgba(138, 111, 58, 0.3);
+  --uw-active: #e6dac1;
+  --page: #e9e0cb;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: var(--page);
+  color: var(--uw-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.app-container {
+  width: 100%;
+  max-width: 440px;
+  background: var(--uw-bg);
+  border: 1px solid var(--uw-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.app-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--uw-gold), transparent);
+  opacity: 0.8;
+}
+
+/* Header */
+.uw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--uw-border);
+}
+
+.uw-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.uw-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.uw-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--uw-text);
+}
+
+.uw-subtitle {
+  font-size: 0.72rem;
+  color: var(--uw-text2);
+  margin-top: 1px;
+}
+
+.uw-header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-icon {
+  background: var(--uw-surface);
+  border: 1px solid var(--uw-border);
+  color: var(--uw-text2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+.btn-icon:hover {
+  color: var(--uw-gold);
+  border-color: var(--uw-gold-border);
+}
+
+/* Status Badge */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--uw-surface);
+  border: 1px solid var(--uw-border);
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin-bottom: 16px;
+  font-size: 0.72rem;
+}
+.badge-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  margin-right: 6px;
+}
+.badge-text {
+  color: var(--uw-text2);
+  font-weight: 600;
+}
+.badge-date {
+  color: var(--uw-text3);
+  font-size: 0.7rem;
+}
+
+/* Hero Countdown Card */
+.hero-card {
+  background: var(--uw-surface);
+  border: 1px solid var(--uw-border);
+  border-radius: 16px;
+  padding: 20px 16px;
+  text-align: center;
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.hero-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--uw-text2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.hero-prayer {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--uw-text);
+  margin-top: 4px;
+}
+
+.hero-prayer .ar {
+  font-family: 'Amiri', serif;
+  font-weight: 700;
+  font-size: 1.45rem;
+  margin-left: 8px;
+  color: var(--uw-gold);
+}
+
+.hero-counter {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--uw-gold);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 8px 0 4px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 24px rgba(245, 192, 48, 0.2);
+}
+
+.hero-target {
+  font-size: 0.8rem;
+  color: var(--uw-text2);
+}
+
+/* Prayer Schedule Table */
+.prayers-card {
+  background: var(--uw-surface);
+  border: 1px solid var(--uw-border);
+  border-radius: 16px;
+  padding: 8px;
+  margin-bottom: 18px;
+}
+
+.prayer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.prayer-row.active {
+  background: var(--uw-gold-bg);
+  border-color: var(--uw-gold);
+}
+.prayer-row.active .prayer-time {
+  color: var(--uw-gold);
+  font-weight: 800;
+}
+.prayer-row.active .prayer-name {
+  color: var(--uw-gold);
+  font-weight: 800;
+}
+
+.prayer-row.passed {
+  opacity: 0.55;
+}
+
+.prayer-row.sun {
+  opacity: 0.7;
+}
+
+.prayer-col-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prayer-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--uw-text);
+}
+
+.prayer-ar {
+  font-family: 'Amiri', serif;
+  font-size: 0.9rem;
+  color: var(--uw-text3);
+}
+
+.prayer-col-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.prayer-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--uw-gold);
+  color: #080b09;
+  display: none;
+}
+.prayer-row.active .prayer-badge {
+  display: inline-block;
+}
+
+.prayer-time {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--uw-text);
+}
+
+/* Action Cards */
+.action-box {
+  background: var(--uw-surface);
+  border: 1px solid var(--uw-border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.btn-primary {
+  width: 100%;
+  background: var(--uw-gold);
+  color: #080b09;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.btn-primary:hover {
+  background: var(--uw-gold2);
+}
+
+.btn-outline {
+  width: 100%;
+  background: transparent;
+  color: var(--uw-gold);
+  border: 1px solid var(--uw-border);
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.btn-outline:hover {
+  background: var(--uw-card);
+  border-color: var(--uw-gold-border);
+}
+
+/* Footer */
+.uw-footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--uw-border);
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--uw-text3);
+}
+.uw-footer a {
+  color: var(--uw-text2);
+  text-decoration: none;
+  font-weight: 600;
+}
+.uw-footer a:hover {
+  color: var(--uw-gold);
+}
+
+/* =========================================
+   COMPACT WIDGET VIEW (?widget=1)
+   Minimal layout for phone home screen widgets
+   ========================================= */
+.widget-mode body {
+  background: transparent;
+  padding: 0;
+  align-items: flex-start;
+}
+.widget-mode .app-container {
+  max-width: 360px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--uw-border);
+  background: var(--uw-bg);
+  box-shadow: none;
+}
+.widget-mode .uw-header,
+.widget-mode .status-bar,
+.widget-mode .prayers-card,
+.widget-mode .action-box,
+.widget-mode .uw-footer {
+  display: none !important;
+}
+.widget-mode .hero-card {
+  background: transparent;
+  border: none;
+  padding: 4px 0 10px;
+  margin-bottom: 8px;
+}
+.widget-mode .hero-counter {
+  font-size: 2.5rem;
+}
+.widget-mode .widget-strip {
+  display: flex !important;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 8px;
+}
+.widget-strip { display: none; }
+.widget-slot {
+  flex: 1;
+  text-align: center;
+  padding: 6px 2px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--uw-surface);
+}
+.widget-slot.active {
+  background: var(--uw-gold-bg);
+  border-color: var(--uw-gold);
+}
+.widget-slot.active .ws-time {
+  color: var(--uw-gold);
+  font-weight: 800;
+}
+.widget-slot.passed {
+  opacity: 0.45;
+}
+.ws-name {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--uw-text2);
+  text-transform: capitalize;
+}
+.ws-time {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--uw-text);
+  margin-top: 2px;
+}
+</style>
+</head>
+<body>
+
+<main class="app-container">
+  <!-- Header -->
+  <header class="uw-header">
+    <div class="uw-brand">
+      <img src="icon-192.png" alt="Prayer Times" class="uw-logo">
+      <div>
+        <div class="uw-title">Prayer Times</div>
+        <div class="uw-subtitle" id="loc-text">Cairo, Egypt</div>
+      </div>
+    </div>
+    <div class="uw-header-actions">
+      <button class="btn-icon" id="theme-btn" title="Toggle theme">Dark</button>
+      <a class="btn-icon" href="?widget=1" title="Open compact widget mode">Widget ↗</a>
+    </div>
+  </header>
+
+  <!-- Offline / Sync Status Bar -->
+  <div class="status-bar">
+    <div>
+      <span class="badge-dot" id="sync-dot"></span>
+      <span class="badge-text" id="sync-text">Offline Ready</span>
+    </div>
+    <div class="badge-date" id="date-text">Saturday, Oct 3</div>
+  </div>
+
+  <!-- Hero Live Countdown Counter -->
+  <section class="hero-card">
+    <div class="hero-label" id="next-label">Next Prayer</div>
+    <div class="hero-prayer" id="next-prayer-name">Loading...</div>
+    <div class="hero-counter" id="countdown">--:--:--</div>
+    <div class="hero-target" id="target-time">&nbsp;</div>
+  </section>
+
+  <!-- Compact Widget Strip (visible only in ?widget=1 mode) -->
+  <div class="widget-strip" id="widget-strip"></div>
+
+  <!-- Daily Schedule Table -->
+  <section class="prayers-card" id="prayers-list"></section>
+
+  <!-- PWA Install & Home Screen Section -->
+  <section class="action-box" id="pwa-install-box">
+    <button class="btn-primary" id="btn-install-app">
+      <span>★ Add to Home Screen</span>
+    </button>
+    <a class="btn-outline" href="?widget=1">
+      <span>📱 View as Home Widget Counter (?widget=1)</span>
+    </a>
+  </section>
+
+  <!-- Offline & Manual Sync -->
+  <section class="action-box">
+    <button class="btn-outline" id="btn-sync-now" style="margin-top:0;">
+      <span>↻ Refresh 30-Day UmmahAPI Sync</span>
+    </button>
+    <div style="font-size:0.7rem; color:var(--uw-text3); margin-top:8px; line-height:1.4;">
+      Calculation: Egyptian General Authority · Madhab: Shafi.<br>
+      Cached 30 days locally with embedded astronomical engine fallback.
+    </div>
+  </section>
+
+  <footer class="uw-footer">
+    Powered by <a href="https://ummahapi.com" target="_blank" rel="noopener">UmmahAPI</a> · Offline First
+  </footer>
+</main>
+
+<script>
+/* ========================================================
+   CONFIGURATION & CONSTANTS
+   ======================================================== */
+const CONFIG = {
+  lat: 30.0444,            // Cairo, Egypt
+  lng: 31.2357,
+  city: 'Cairo, Egypt',
+  method: 'Egyptian',
+  madhab: 'Shafi',
+  apiKey: 'umh_3cce13d1ecd2356ee6ddd4ad30e2c8bd4b684a3f',
+  hour12: true
+};
+
+const ORDER = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+const PRAYERS_ONLY = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+const EN_NAMES = { fajr: 'Fajr', sunrise: 'Sunrise', dhuhr: 'Dhuhr', asr: 'Asr', maghrib: 'Maghrib', isha: 'Isha' };
+const AR_NAMES = { fajr: 'الفجر', sunrise: 'الشروق', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
+const DAY_MS = 86400000;
+
+/* ========================================================
+   100% OFFLINE ASTRONOMICAL SOLAR CALCULATION ENGINE
+   Ensures accurate prayer times anywhere with zero network.
+   ======================================================== */
+const OfflineSolar = {
+  d2r: d => d * Math.PI / 180,
+  r2d: r => r * 180 / Math.PI,
+  fixAngle: a => { let r = a - 360 * Math.floor(a / 360); return r < 0 ? r + 360 : r; },
+  fixHour: h => { let r = h - 24 * Math.floor(h / 24); return r < 0 ? r + 24 : r; },
+
+  calculate(date, lat = CONFIG.lat, lng = CONFIG.lng, fajrAngle = 19.5, ishaAngle = 17.5, asrFactor = 1.0) {
+    let y = date.getFullYear();
+    let m = date.getMonth() + 1;
+    const d = date.getDate();
+
+    if (m <= 2) { y -= 1; m += 12; }
+    const a = Math.floor(y / 100);
+    const b = 2 - a + Math.floor(a / 4);
+    const jd = Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + b - 1524.5;
+    const dj = jd - 2451545.0;
+
+    const g = this.fixAngle(357.529 + 0.98560028 * dj);
+    const q = this.fixAngle(280.459 + 0.98564736 * dj);
+    const L = this.fixAngle(q + 1.915 * Math.sin(this.d2r(g)) + 0.020 * Math.sin(this.d2r(2 * g)));
+    const e = 23.439 - 0.00000036 * dj;
+
+    const sinDec = Math.sin(this.d2r(e)) * Math.sin(this.d2r(L));
+    const dec = Math.asin(sinDec);
+    const ra = this.fixAngle(this.r2d(Math.atan2(Math.cos(this.d2r(e)) * Math.sin(this.d2r(L)), Math.cos(this.d2r(L))))) / 15;
+
+    let eqt = q / 15 - ra;
+    if (eqt > 12) eqt -= 24;
+    if (eqt < -12) eqt += 24;
+
+    const tzOffset = -date.getTimezoneOffset() / 60;
+    const noon = this.fixHour(12 + tzOffset - lng / 15 - eqt);
+
+    const hourAngle = alpha => {
+      const cosH = (Math.sin(this.d2r(alpha)) - Math.sin(this.d2r(lat)) * Math.sin(dec)) / (Math.cos(this.d2r(lat)) * Math.cos(dec));
+      if (cosH > 1 || cosH < -1) return 0;
+      return this.r2d(Math.acos(cosH)) / 15;
+    };
+
+    const fajrH = hourAngle(-fajrAngle);
+    const sunH = hourAngle(-0.833);
+    const asrAlt = this.r2d(Math.atan(1 / (asrFactor + Math.tan(Math.abs(this.d2r(lat) - dec)))));
+    const asrH = hourAngle(asrAlt);
+    const ishaH = hourAngle(-ishaAngle);
+
+    const toEpoch = hours => {
+      const totalMinutes = Math.round(hours * 60);
+      const hh = Math.floor(totalMinutes / 60) % 24;
+      const mm = totalMinutes % 60;
+      const res = new Date(date);
+      res.setHours(hh, mm, 0, 0);
+      return res.getTime();
+    };
+
+    return {
+      fajr: toEpoch(noon - fajrH),
+      sunrise: toEpoch(noon - sunH),
+      dhuhr: toEpoch(noon + 1 / 60),
+      asr: toEpoch(noon + asrH),
+      maghrib: toEpoch(noon + sunH + 1 / 60),
+      isha: toEpoch(noon + ishaH)
+    };
+  }
+};
+
+/* ========================================================
+   DATA LAYER (MONTH CACHE + LOCALSTORAGE)
+   ======================================================== */
+const pad = n => String(n).padStart(2, '0');
+const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+async function syncMonthFromApi(year, month) {
+  try {
+    const url = `https://www.ummahapi.com/api/prayer-times/month?lat=${CONFIG.lat}&lng=${CONFIG.lng}&month=${month}&year=${year}&method=${CONFIG.method}&madhab=${CONFIG.madhab}&apikey=${CONFIG.apiKey}`;
+    const res = await fetch(url, {
+      headers: { 'X-API-Key': CONFIG.apiKey, 'Accept': 'application/json' }
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    if (!json.success || !Array.isArray(json.data)) return false;
+
+    for (const item of json.data) {
+      const ds = item.date;
+      const dt = item.prayer_datetimes || {};
+      const pt = item.prayer_times || {};
+      const times = {};
+
+      for (const p of ORDER) {
+        let ms = dt[p] ? Date.parse(dt[p]) : NaN;
+        if (isNaN(ms) && pt[p]) {
+          const [h, m] = pt[p].split(':').map(Number);
+          const [yy, mo, da] = ds.split('-').map(Number);
+          ms = new Date(yy, mo - 1, da, h, m).getTime();
+        }
+        if (!isNaN(ms)) times[p] = ms;
+      }
+
+      if (Object.keys(times).length >= 5) {
+        localStorage.setItem(`pt_day_${ds}`, JSON.stringify({ times, source: 'api' }));
+      }
+    }
+    localStorage.setItem('pt_last_sync', String(Date.now()));
+    return true;
+  } catch (e) {
+    console.warn('Network sync failed, offline fallback active:', e);
+    return false;
+  }
+}
+
+function getDayTimes(date) {
+  const ds = dateKey(date);
+  const cachedStr = localStorage.getItem(`pt_day_${ds}`);
+
+  if (cachedStr) {
+    try {
+      const cached = JSON.parse(cachedStr);
+      if (cached && cached.times && Object.keys(cached.times).length >= 5) {
+        return { times: cached.times, source: cached.source || 'api' };
+      }
+    } catch {}
+  }
+
+  // Pure Offline fallback
+  const calculated = OfflineSolar.calculate(date);
+  localStorage.setItem(`pt_day_${ds}`, JSON.stringify({ times: calculated, source: 'offline' }));
+  return { times: calculated, source: 'offline' };
+}
+
+/* ========================================================
+   UI RENDERING & LIVE TIMER
+   ======================================================== */
+const $ = id => document.getElementById(id);
+let currentDay = null;
+let currentDayTimes = null;
+let nextPrayer = null;
+let timer = null;
+
+function formatTime(ms) {
+  return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: CONFIG.hour12 });
+}
+
+function renderUI() {
+  const today = new Date();
+  const ds = dateKey(today);
+  const data = getDayTimes(today);
+  currentDayTimes = data.times;
+
+  // Header Subtitle & Date
+  const dateOptions = { weekday: 'long', month: 'short', day: 'numeric' };
+  $('date-text').textContent = today.toLocaleDateString('en-US', dateOptions);
+
+  if (data.source === 'api') {
+    $('sync-dot').style.background = '#4ade80';
+    $('sync-text').textContent = 'Synced with UmmahAPI';
+  } else {
+    $('sync-dot').style.background = '#f5c030';
+    $('sync-text').textContent = 'Offline Mode (Calculated)';
+  }
+
+  // Build prayers table
+  $('prayers-list').innerHTML = ORDER.map(p => {
+    const isSun = p === 'sunrise';
+    return `
+      <div class="prayer-row${isSun ? ' sun' : ''}" id="p-row-${p}">
+        <div class="prayer-col-left">
+          <span class="prayer-name">${EN_NAMES[p]}</span>
+          <span class="prayer-ar">${AR_NAMES[p]}</span>
+        </div>
+        <div class="prayer-col-right">
+          <span class="prayer-badge">NEXT</span>
+          <span class="prayer-time">${formatTime(currentDayTimes[p])}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Build compact widget strip
+  $('widget-strip').innerHTML = PRAYERS_ONLY.map(p => `
+    <div class="widget-slot" id="ws-slot-${p}">
+      <div class="ws-name">${EN_NAMES[p]}</div>
+      <div class="ws-time">${formatTime(currentDayTimes[p])}</div>
+    </div>
+  `).join('');
+
+  updateTick();
+}
+
+function updateTick() {
+  if (!currentDayTimes) return;
+  const now = Date.now();
+  const today = new Date();
+
+  // Find next upcoming prayer
+  let next = null;
+  for (const p of PRAYERS_ONLY) {
+    if (currentDayTimes[p] > now) {
+      next = { name: p, at: currentDayTimes[p] };
+      break;
+    }
+  }
+
+  if (!next) {
+    // Tomorrow's Fajr
+    const tomorrow = new Date(now + DAY_MS);
+    const tomData = getDayTimes(tomorrow);
+    next = { name: 'fajr', at: tomData.times.fajr };
+  }
+
+  // Update Hero Card
+  const diffSec = Math.max(0, Math.floor((next.at - now) / 1000));
+  const hh = pad(Math.floor(diffSec / 3600));
+  const mm = pad(Math.floor((diffSec % 3600) / 60));
+  const ss = pad(diffSec % 60);
+
+  $('countdown').textContent = `${hh}:${mm}:${ss}`;
+  $('next-prayer-name').innerHTML = `${EN_NAMES[next.name]} <span class="ar">${AR_NAMES[next.name]}</span>`;
+  $('target-time').textContent = `at ${formatTime(next.at)}`;
+
+  // Highlight active prayer row & widget slot
+  ORDER.forEach(p => {
+    const row = $(`p-row-${p}`);
+    if (row) {
+      row.classList.toggle('active', p === next.name);
+      row.classList.toggle('passed', currentDayTimes[p] < now && p !== next.name);
+    }
+  });
+
+  PRAYERS_ONLY.forEach(p => {
+    const slot = $(`ws-slot-${p}`);
+    if (slot) {
+      slot.classList.toggle('active', p === next.name);
+      slot.classList.toggle('passed', currentDayTimes[p] < now && p !== next.name);
+    }
+  });
+}
+
+function startTimer() {
+  clearInterval(timer);
+  updateTick();
+  timer = setInterval(updateTick, 1000);
+}
+
+/* ========================================================
+   THEME HANDLER
+   ======================================================== */
+const THEMES = ['dark', 'light', 'cream'];
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $('theme-btn').textContent = t.charAt(0).toUpperCase() + t.slice(1);
+  try { localStorage.setItem('pt_theme', t); } catch {}
+}
+$('theme-btn').onclick = () => {
+  const cur = document.documentElement.dataset.theme || 'dark';
+  setTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
+};
+setTheme(localStorage.getItem('pt_theme') || 'dark');
+
+/* ========================================================
+   MANUAL SYNC TRIGGER
+   ======================================================== */
+$('btn-sync-now').onclick = async () => {
+  const btn = $('btn-sync-now');
+  btn.disabled = true;
+  btn.textContent = 'Syncing full month with UmmahAPI...';
+  const now = new Date();
+  const ok = await syncMonthFromApi(now.getFullYear(), now.getMonth() + 1);
+  btn.disabled = false;
+  btn.textContent = ok ? '✓ Synced with UmmahAPI' : '✓ Offline calculations ready';
+  renderUI();
+  setTimeout(() => { btn.textContent = '↻ Refresh 30-Day UmmahAPI Sync'; }, 3000);
+};
+
+/* ========================================================
+   PWA INSTALL PROMPT
+   ======================================================== */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const box = $('pwa-install-box');
+  if (box) box.style.display = 'block';
+});
+
+$('btn-install-app').onclick = async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+  } else {
+    alert("To install on your Android home screen: tap your browser's menu (⋮) in the top-right corner and select 'Add to Home screen' or 'Install app'.");
+  }
+};
+
+/* ========================================================
+   SERVICE WORKER REGISTRATION & INIT
+   ======================================================== */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration:', err));
+}
+
+// Initial load
+renderUI();
+startTimer();
+
+// Proactively sync month in background if online
+if (navigator.onLine) {
+  const now = new Date();
+  syncMonthFromApi(now.getFullYear(), now.getMonth() + 1).then(() => renderUI());
+}
+</script>
+</body>
+</html>
