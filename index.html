@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1512">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+/* ?widget=1 gives the compact view, ?theme=dark|light|cream sets the theme */
+(function(){var q=new URLSearchParams(location.search);if(q.get('widget')==='1')document.documentElement.classList.add('widget');})();
+</script>
+<title>Prayer Times</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Amiri:wght@400&display=swap" rel="stylesheet">
+<style>
+/* Theme tokens copied from the UmmahAPI widget */
+:root, [data-theme="dark"] {
+  --uw-bg:#0d1512; --uw-surface:#141c18; --uw-border:#1e2e27;
+  --uw-text:#f4f7f5; --uw-text2:#8fa898; --uw-text3:#526b5c;
+  --uw-gold:#f5c030; --uw-accent:#34d399; --uw-highlight:rgba(245,192,48,0.12);
+  --page:#080d0b;
+}
+[data-theme="light"] {
+  --uw-bg:#fafaf7; --uw-surface:#ffffff; --uw-border:#e8e8e0;
+  --uw-text:#1a1a1a; --uw-text2:#5a5a5a; --uw-text3:#8a8a8a;
+  --uw-gold:#b8902a; --uw-accent:#0d8a5a; --uw-highlight:rgba(184,144,42,0.08);
+  --page:#eeeee8;
+}
+[data-theme="cream"] {
+  --uw-bg:#f5efe1; --uw-surface:#faf5ea; --uw-border:#e0d4ba;
+  --uw-text:#3a2e1a; --uw-text2:#6b5a3e; --uw-text3:#9c8866;
+  --uw-gold:#8a6f3a; --uw-accent:#5a8a5a; --uw-highlight:rgba(138,111,58,0.1);
+  --page:#e9e0cb;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--page);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+
+body { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+
+/* Widget styles */
+.uw {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: var(--uw-bg); color: var(--uw-text);
+  border: 1px solid var(--uw-border); border-radius: 16px;
+  padding: 20px; width: 100%; max-width: 380px;
+  position: relative; overflow: hidden; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+}
+.uw::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--uw-gold), transparent); opacity: .6;
+}
+.uw-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--uw-border);
+}
+.uw-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--uw-text2); }
+.uw-loc { font-size: .74rem; color: var(--uw-text3); }
+.uw-btn {
+  font: inherit; font-size: .72rem; font-weight: 600; color: var(--uw-text2);
+  background: transparent; border: 1px solid var(--uw-border); border-radius: 8px;
+  padding: 4px 10px; cursor: pointer;
+}
+.uw-btn:hover { color: var(--uw-gold); border-color: var(--uw-gold); }
+.uw-btn:focus-visible { outline: 2px solid var(--uw-gold); outline-offset: 2px; }
+
+.uw-big { text-align: center; padding: 12px 0 16px; }
+.uw-big-num {
+  font-size: 2.4rem; font-weight: 800; color: var(--uw-gold);
+  letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.uw-big-label {
+  font-size: .76rem; color: var(--uw-text2); margin-top: 8px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.uw-big-label .ar { font-family: 'Amiri', serif; font-size: .95rem; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+
+.uw-prayer-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 4px;
+  border: 1px solid transparent; transition: background .15s;
+}
+.uw-prayer-row.active { background: var(--uw-highlight); border-color: var(--uw-gold); }
+.uw-prayer-row.active .uw-prayer-time { color: var(--uw-gold); }
+.uw-prayer-name { font-size: .88rem; font-weight: 600; }
+.uw-prayer-arabic { font-family: 'Amiri', serif; font-size: .78rem; color: var(--uw-text3); margin-left: 8px; }
+.uw-prayer-time { font-size: .92rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.uw-prayer-row.sun .uw-prayer-name, .uw-prayer-row.sun .uw-prayer-time { color: var(--uw-text2); font-weight: 500; }
+
+.uw-foot { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--uw-border); text-align: center; }
+.uw-foot a { font-size: .7rem; color: var(--uw-text3); text-decoration: none; font-weight: 500; }
+.uw-foot a:hover { color: var(--uw-gold); }
+.uw-foot b { color: var(--uw-gold); font-weight: 700; }
+
+.uw-error { text-align: center; padding: 20px 16px; color: #e57373; font-size: .85rem; }
+.uw-error .uw-btn { margin-top: 10px; }
+
+/* Phone: use the full width */
+@media (max-width: 480px) { .uw { max-width: none; } .uw-big-num { font-size: 2.8rem; } }
+
+/* Compact widget view (?widget=1): countdown + the five prayers only */
+.widget body { align-items: flex-start; }
+.widget .uw { max-width: 320px; padding: 14px; }
+.widget .uw-head, .widget .uw-foot, .widget .uw-prayer-row.sun, .widget .uw-prayer-arabic { display: none; }
+.widget .uw-big { padding: 4px 0 10px; }
+.widget .uw-big-num { font-size: 2.2rem; }
+.widget .uw-prayer-row { padding: 6px 10px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="uw">
+  <div class="uw-head">
+    <div>
+      <div class="uw-title">Prayer Times</div>
+      <div class="uw-loc" id="loc">&nbsp;</div>
+    </div>
+    <button class="uw-btn" id="theme" type="button" title="Change theme">dark</button>
+  </div>
+
+  <div class="uw-big">
+    <div class="uw-big-num" id="count">--:--:--</div>
+    <div class="uw-big-label" id="nlabel">Loading…</div>
+  </div>
+
+  <div id="rows"></div>
+  <div class="uw-error" id="err" hidden></div>
+
+  <div class="uw-foot"><a href="https://ummahapi.com" target="_blank" rel="noopener">Powered by <b>UmmahAPI</b></a></div>
+</main>
+
+<script>
+/* ---------- Settings ---------- */
+const CONFIG = {
+  lat: 30.0444,            // Cairo. Change to your coordinates
+  lng: 31.2357,
+  method: 'Egyptian',      // see https://ummahapi.com/api/prayer-times/methods
+  madhab: 'Shafi',         // Shafi or Hanafi (Asr time)
+  hour12: true,            // false for 24h display
+  apiKey: ''   // optional. Don't put a private key here if you host this publicly
+};
+
+/* ---------- Constants ---------- */
+const API = 'https://www.ummahapi.com/api/prayer-times';
+const ORDER = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+const PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];   // sunrise is shown but never counted down to
+const EN = { fajr: 'Fajr', sunrise: 'Sunrise', dhuhr: 'Dhuhr', asr: 'Asr', maghrib: 'Maghrib', isha: 'Isha' };
+const AR = { fajr: 'الفجر', sunrise: 'الشروق', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
+const DAY = 864e5;
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const ckey = ds => `pt1|${CONFIG.lat},${CONFIG.lng}|${CONFIG.method}|${CONFIG.madhab}|${ds}`;
+const fmt = ms => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: CONFIG.hour12 });
+const lower = o => Object.fromEntries(Object.entries(o || {}).map(([k, v]) => [k.toLowerCase(), v]));
+
+/* ---------- Data: one request per day, cached in localStorage ---------- */
+function normalize(d, ds) {
+  const pt = lower(d.prayer_times), dt = lower(d.prayer_datetimes), t = {};
+  for (const p of ORDER) {
+    let ms = dt[p] ? Date.parse(dt[p]) : NaN;
+    if (isNaN(ms) && pt[p]) {                       // fallback: HH:MM in this device's timezone
+      const [h, m] = pt[p].split(':').map(Number), [y, mo, da] = ds.split('-').map(Number);
+      ms = new Date(y, mo - 1, da, h, m).getTime();
+    }
+    if (!isNaN(ms)) t[p] = ms;
+  }
+  return { tz: d.timezone || '', t };
+}
+
+function prune(today) {
+  for (const k of Object.keys(localStorage)) {
+    if (k.startsWith('pt1|') && k.split('|').pop() < today) localStorage.removeItem(k);
+  }
+}
+
+async function getDay(ds) {
+  try { const c = JSON.parse(localStorage.getItem(ckey(ds))); if (c && c.t) return c; } catch {}
+  const q = { lat: CONFIG.lat, lng: CONFIG.lng, method: CONFIG.method, madhab: CONFIG.madhab, date: ds };
+  if (CONFIG.apiKey) q.apikey = CONFIG.apiKey;
+  const res = await fetch(`${API}?${new URLSearchParams(q)}`);
+  if (!res.ok) throw new Error('API error ' + res.status);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'API returned an error');
+  const day = normalize(json.data, ds);
+  if (Object.keys(day.t).length < 5) throw new Error('Unexpected API response');
+  try { localStorage.setItem(ckey(ds), JSON.stringify(day)); prune(ds); } catch {}
+  return day;
+}
+
+/* ---------- State & rendering ---------- */
+let day = null, tomorrow = null, dayKey = '', activeP = '', busy = false, timer = null;
+
+function renderRows() {
+  $('rows').innerHTML = ORDER.map(p => `
+    <div class="uw-prayer-row${p === 'sunrise' ? ' sun' : ''}" data-p="${p}">
+      <div><span class="uw-prayer-name">${EN[p]}</span><span class="uw-prayer-arabic">${AR[p]}</span></div>
+      <div class="uw-prayer-time">${day.t[p] ? fmt(day.t[p]) : '--'}</div>
+    </div>`).join('');
+  activeP = '';
+  const city = day.tz.split('/').pop().replace(/_/g, ' ');
+  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  $('loc').textContent = date + (city ? ' · ' + city : '');
+}
+
+function setActive(p) {
+  if (p === activeP) return;
+  activeP = p;
+  document.querySelectorAll('.uw-prayer-row').forEach(r => r.classList.toggle('active', r.dataset.p === p));
+}
+
+function showError(msg) {
+  const e = $('err');
+  e.hidden = false;
+  e.innerHTML = `${msg}<br><button class="uw-btn" type="button" id="retry">Try again</button>`;
+  $('retry').onclick = load;
+  $('count').textContent = '--:--:--';
+  $('nlabel').textContent = 'Unavailable';
+}
+
+/* ---------- Countdown: runs on the clock only, no network ---------- */
+async function tick() {
+  if (busy || !day) return;
+  busy = true;
+  try {
+    const now = Date.now();
+    if (dkey(new Date(now)) !== dayKey) { busy = false; return load(); }   // new day
+
+    let next = null;
+    for (const p of PRAYERS) if (day.t[p] > now) { next = { p, at: day.t[p] }; break; }
+
+    if (!next) {                                       // after Isha: tomorrow's Fajr
+      if (!tomorrow) {
+        try { tomorrow = await getDay(dkey(new Date(now + DAY))); } catch {}
+      }
+      next = { p: 'fajr', at: tomorrow ? tomorrow.t.fajr : day.t.fajr + DAY };
+    }
+
+    const left = Math.max(0, Math.floor((next.at - now) / 1000));
+    const text = `${pad(Math.floor(left / 3600))}:${pad(Math.floor(left % 3600 / 60))}:${pad(left % 60)}`;
+    $('count').textContent = text;
+    $('nlabel').innerHTML = `until ${EN[next.p]} <span class="ar">${AR[next.p]}</span>`;
+    document.title = `${text} · ${EN[next.p]}`;
+    setActive(next.p);
+  } finally { busy = false; }
+}
+
+function start() {
+  clearInterval(timer);
+  tick();
+  timer = setInterval(tick, 1000);
+}
+
+async function load() {
+  $('err').hidden = true;
+  $('nlabel').textContent = 'Loading…';
+  const now = new Date();
+  dayKey = dkey(now);
+  tomorrow = null;
+  try {
+    day = await getDay(dayKey);
+    renderRows();
+    start();
+  } catch (e) {
+    showError(e.message || 'Could not load prayer times.');
+  }
+}
+
+/* Pause the timer while the tab is hidden, resync when it returns */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearInterval(timer);
+  else if (day) start();
+});
+
+/* ---------- Theme ---------- */
+const THEMES = ['dark', 'light', 'cream'];
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $('theme').textContent = t;
+  try { localStorage.setItem('pt-theme', t); } catch {}
+}
+$('theme').onclick = () => setTheme(THEMES[(THEMES.indexOf(document.documentElement.dataset.theme) + 1) % 3]);
+const qt = new URLSearchParams(location.search).get('theme');
+try { setTheme(THEMES.includes(qt) ? qt : (localStorage.getItem('pt-theme') || 'dark')); } catch { setTheme('dark'); }
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+load();
+</script>
+</body>
+</html>
