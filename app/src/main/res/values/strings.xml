@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Prayer Times</string>
+    <string name="widget_name">Prayer Times Counter</string>
+    <string name="widget_description">Live countdown to next prayer and daily prayer schedule</string>
+</resources>
