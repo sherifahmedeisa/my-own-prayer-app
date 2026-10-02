@@ -11,13 +11,28 @@ android {
         applicationId = "com.prayer.widget"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("${rootProject.projectDir}/keystore.jks")
+            storePassword = "prayertimesapp"
+            keyAlias = "prayertimes"
+            keyPassword = "prayertimesapp"
+            enableV1Signing = true
+            enableV2Signing = true
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -36,5 +51,5 @@ android {
 }
 
 dependencies {
-    // Lean native build using Android SDK and standard Kotlin stdlib
+    // Standard Kotlin & Android Framework
 }
