@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.widget.Button
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import java.time.Instant
@@ -45,6 +47,9 @@ class MainActivity : Activity() {
         setupListeners()
         applyTheme(currentTheme)
         loadData()
+
+        // Ensure reminders are scheduled
+        PrayerScheduler.scheduleReminders(this)
     }
 
     override fun onResume() {
@@ -75,6 +80,76 @@ class MainActivity : Activity() {
 
         findViewById<Button>(R.id.btn_theme_toggle)?.setOnClickListener {
             toggleTheme()
+        }
+
+        setupReminderControls()
+    }
+
+    private fun setupReminderControls() {
+        val sp = getSharedPreferences(PrayerScheduler.PREFS_NAME, Context.MODE_PRIVATE)
+        val switchMaster = findViewById<Switch>(R.id.switch_reminders_master)
+        val switchBefore = findViewById<Switch>(R.id.switch_remind_before)
+        val switchAfter = findViewById<Switch>(R.id.switch_remind_after)
+        val switchHaptic = findViewById<Switch>(R.id.switch_haptic)
+        val btnTest = findViewById<Button>(R.id.btn_test_reminder)
+
+        val masterEnabled = sp.getBoolean(PrayerScheduler.KEY_REMINDERS_ENABLED, true)
+        val beforeEnabled = sp.getBoolean(PrayerScheduler.KEY_REMIND_BEFORE, true)
+        val afterEnabled = sp.getBoolean(PrayerScheduler.KEY_REMIND_AFTER, true)
+        val hapticEnabled = sp.getBoolean(PrayerScheduler.KEY_HAPTIC_ENABLED, true)
+
+        switchMaster?.isChecked = masterEnabled
+        switchBefore?.isChecked = beforeEnabled
+        switchAfter?.isChecked = afterEnabled
+        switchHaptic?.isChecked = hapticEnabled
+
+        fun updateSubswitches(enabled: Boolean) {
+            switchBefore?.isEnabled = enabled
+            switchAfter?.isEnabled = enabled
+            switchHaptic?.isEnabled = enabled
+        }
+        updateSubswitches(masterEnabled)
+
+        switchMaster?.setOnCheckedChangeListener { _, isChecked ->
+            sp.edit().putBoolean(PrayerScheduler.KEY_REMINDERS_ENABLED, isChecked).apply()
+            updateSubswitches(isChecked)
+            if (isChecked) {
+                checkNotificationPermission()
+            }
+            PrayerScheduler.scheduleReminders(this)
+            Toast.makeText(this, if (isChecked) "Prayer Reminders Enabled" else "Prayer Reminders Disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        switchBefore?.setOnCheckedChangeListener { _, isChecked ->
+            sp.edit().putBoolean(PrayerScheduler.KEY_REMIND_BEFORE, isChecked).apply()
+            PrayerScheduler.scheduleReminders(this)
+        }
+
+        switchAfter?.setOnCheckedChangeListener { _, isChecked ->
+            sp.edit().putBoolean(PrayerScheduler.KEY_REMIND_AFTER, isChecked).apply()
+            PrayerScheduler.scheduleReminders(this)
+        }
+
+        switchHaptic?.setOnCheckedChangeListener { _, isChecked ->
+            sp.edit().putBoolean(PrayerScheduler.KEY_HAPTIC_ENABLED, isChecked).apply()
+        }
+
+        btnTest?.setOnClickListener {
+            checkNotificationPermission()
+            sendBroadcast(Intent(this, PrayerNotificationReceiver::class.java).apply {
+                action = PrayerScheduler.ACTION_PRAYER_BEFORE
+                putExtra(PrayerScheduler.EXTRA_PRAYER_NAME, nextPrayerName.ifEmpty { "asr" })
+                putExtra(PrayerScheduler.EXTRA_PRAYER_TIME, System.currentTimeMillis() + 15 * 60 * 1000L)
+            })
+            Toast.makeText(this, "Testing 15m reminder (check notification & haptic!)", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
         }
     }
 
@@ -107,12 +182,15 @@ class MainActivity : Activity() {
         window.statusBarColor = colorPage
         window.navigationBarColor = colorPage
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            @Suppress("DEPRECATION")
             var flags = window.decorView.systemUiVisibility
+            @Suppress("DEPRECATION")
             flags = if (isCream) {
                 flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
             } else {
                 flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
             }
+            @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = flags
         }
 
@@ -144,6 +222,19 @@ class MainActivity : Activity() {
         val cardSchedule = findViewById<View>(R.id.card_schedule)
         cardSchedule?.setBackgroundResource(if (isCream) R.drawable.card_bg_cream else R.drawable.card_bg)
         findViewById<TextView>(R.id.tv_schedule_title)?.setTextColor(colorTextSecondary)
+
+        // Reminders Card
+        val cardReminders = findViewById<View>(R.id.card_reminders)
+        cardReminders?.setBackgroundResource(if (isCream) R.drawable.card_bg_cream else R.drawable.card_bg)
+        findViewById<TextView>(R.id.tv_reminders_title)?.setTextColor(colorGold)
+        findViewById<TextView>(R.id.tv_remind_master_label)?.setTextColor(colorTextPrimary)
+        findViewById<TextView>(R.id.tv_remind_before_label)?.setTextColor(colorTextSecondary)
+        findViewById<TextView>(R.id.tv_remind_after_label)?.setTextColor(colorTextSecondary)
+        findViewById<TextView>(R.id.tv_haptic_label)?.setTextColor(colorTextSecondary)
+
+        val btnTest = findViewById<Button>(R.id.btn_test_reminder)
+        btnTest?.setBackgroundResource(if (isCream) R.drawable.button_outline_bg_cream else R.drawable.button_outline_bg)
+        btnTest?.setTextColor(colorGold)
 
         // Widget Card
         val cardWidget = findViewById<View>(R.id.card_widget)
@@ -192,8 +283,9 @@ class MainActivity : Activity() {
             val today = LocalDate.now()
             val success = PrayerRepository.syncMonth(this, today.year, today.monthValue)
 
-            // Trigger widget refresh
+            // Trigger widget refresh and reschedule reminders
             sendBroadcast(Intent(this, PrayerWidget::class.java).setAction(PrayerWidget.ACTION_REFRESH))
+            PrayerScheduler.scheduleReminders(this)
 
             runOnUiThread {
                 btn?.isEnabled = true

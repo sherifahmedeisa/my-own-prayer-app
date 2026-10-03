@@ -548,6 +548,37 @@ body {
     </a>
   </section>
 
+  <!-- Prayer Reminders & Haptics Section -->
+  <section class="action-box">
+    <div style="font-size:0.75rem; font-weight:800; color:var(--uw-gold); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px;">
+      🔔 15-Min Reminders &amp; Haptics
+    </div>
+
+    <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:0.8rem; cursor:pointer;">
+      <span>Enable Reminders</span>
+      <input type="checkbox" id="web-remind-master" checked style="accent-color:var(--uw-gold); width:18px; height:18px;">
+    </label>
+
+    <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:0.76rem; color:var(--uw-text2); cursor:pointer;">
+      <span>15 minutes BEFORE prayer</span>
+      <input type="checkbox" id="web-remind-before" checked style="accent-color:var(--uw-gold); width:16px; height:16px;">
+    </label>
+
+    <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:0.76rem; color:var(--uw-text2); cursor:pointer;">
+      <span>15 minutes AFTER prayer</span>
+      <input type="checkbox" id="web-remind-after" checked style="accent-color:var(--uw-gold); width:16px; height:16px;">
+    </label>
+
+    <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; font-size:0.76rem; color:var(--uw-text2); cursor:pointer;">
+      <span>Haptic Vibration</span>
+      <input type="checkbox" id="web-remind-haptic" checked style="accent-color:var(--uw-gold); width:16px; height:16px;">
+    </label>
+
+    <button class="btn-outline" id="btn-web-test-reminder" style="margin-top:0;">
+      <span>⚡ Test Haptic &amp; Notification Now</span>
+    </button>
+  </section>
+
   <!-- PWA Install Section -->
   <section class="action-box" id="pwa-install-box">
     <button class="btn-outline" id="btn-install-app" style="margin-top:0;">
@@ -832,6 +863,8 @@ function updateTick() {
       slot.classList.toggle('passed', currentDayTimes[p] < now && p !== next.name);
     }
   });
+
+  Reminders.check(currentDayTimes, now);
 }
 
 function startTimer() {
@@ -907,6 +940,125 @@ if (apkBtn) {
 }
 
 /* ========================================================
+   WEB REMINDERS & HAPTICS HANDLER
+   ======================================================== */
+const Reminders = {
+  vibratePattern: [0, 350, 150, 350, 150, 500],
+  fired: new Set(),
+
+  init() {
+    const master = $('web-remind-master');
+    const before = $('web-remind-before');
+    const after = $('web-remind-after');
+    const haptic = $('web-remind-haptic');
+    const btnTest = $('btn-web-test-reminder');
+
+    if (!master) return;
+
+    master.checked = localStorage.getItem('pt_remind_master') !== 'false';
+    before.checked = localStorage.getItem('pt_remind_before') !== 'false';
+    after.checked = localStorage.getItem('pt_remind_after') !== 'false';
+    haptic.checked = localStorage.getItem('pt_remind_haptic') !== 'false';
+
+    const save = () => {
+      localStorage.setItem('pt_remind_master', master.checked);
+      localStorage.setItem('pt_remind_before', before.checked);
+      localStorage.setItem('pt_remind_after', after.checked);
+      localStorage.setItem('pt_remind_haptic', haptic.checked);
+      if (master.checked && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    };
+
+    master.onchange = save;
+    before.onchange = save;
+    after.onchange = save;
+    haptic.onchange = save;
+
+    if (btnTest) {
+      btnTest.onclick = () => {
+        this.trigger('⏰ 15 min to Asr · العصر', 'Time to prepare and perform wudu for Asr prayer.', true);
+      };
+    }
+  },
+
+  trigger(title, body, force = false) {
+    const master = localStorage.getItem('pt_remind_master') !== 'false';
+    const haptic = localStorage.getItem('pt_remind_haptic') !== 'false';
+
+    if (!master && !force) return;
+
+    // Haptic feedback
+    if (haptic && 'vibrate' in navigator) {
+      try { navigator.vibrate(this.vibratePattern); } catch {}
+    }
+
+    // Notification
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(title, {
+          body,
+          icon: 'icon-192.png',
+          badge: 'icon-192.png',
+          vibrate: this.vibratePattern
+        });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') {
+            new Notification(title, {
+              body,
+              icon: 'icon-192.png',
+              badge: 'icon-192.png',
+              vibrate: this.vibratePattern
+            });
+          }
+        });
+      }
+    }
+  },
+
+  check(times, now) {
+    const master = localStorage.getItem('pt_remind_master') !== 'false';
+    const before = localStorage.getItem('pt_remind_before') !== 'false';
+    const after = localStorage.getItem('pt_remind_after') !== 'false';
+    if (!master || !times) return;
+
+    const offset = 15 * 60 * 1000; // 15 min
+
+    for (const p of PRAYERS_ONLY) {
+      const t = times[p];
+      if (!t) continue;
+
+      // 15m before
+      const keyBefore = `b_${p}_${t}`;
+      if (before && !this.fired.has(keyBefore)) {
+        const diff = t - offset - now;
+        if (Math.abs(diff) <= 1500) {
+          this.fired.add(keyBefore);
+          this.trigger(
+            `⏰ 15 min to ${EN_NAMES[p]} · ${AR_NAMES[p]}`,
+            `Time to prepare and perform wudu for ${EN_NAMES[p]} prayer.`
+          );
+        }
+      }
+
+      // 15m after
+      const keyAfter = `a_${p}_${t}`;
+      if (after && !this.fired.has(keyAfter)) {
+        const diff = t + offset - now;
+        if (Math.abs(diff) <= 1500) {
+          this.fired.add(keyAfter);
+          this.trigger(
+            `🕌 15 min since ${EN_NAMES[p]} · ${AR_NAMES[p]}`,
+            `Have you performed ${EN_NAMES[p]} prayer? أقم الصلاة`
+          );
+        }
+      }
+    }
+  }
+};
+
+/* ========================================================
    SERVICE WORKER REGISTRATION & INIT
    ======================================================== */
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
@@ -916,6 +1068,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 // Initial load
 renderUI();
 startTimer();
+Reminders.init();
 
 // Proactively sync month in background if online
 if (navigator.onLine) {
