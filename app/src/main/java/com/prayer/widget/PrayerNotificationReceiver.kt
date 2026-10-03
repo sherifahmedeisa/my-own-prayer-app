@@ -42,6 +42,7 @@ class PrayerNotificationReceiver : BroadcastReceiver() {
                 handleReminder(context, intent)
                 // Re-queue subsequent reminders
                 PrayerScheduler.scheduleReminders(context)
+                PrayerLiveTickerService.updateAodNotification(context)
             }
         }
     }

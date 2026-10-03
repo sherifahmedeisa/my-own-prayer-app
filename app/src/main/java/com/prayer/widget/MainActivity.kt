@@ -61,6 +61,7 @@ class MainActivity : Activity() {
             applyTheme(currentTheme)
         }
         loadData()
+        PrayerLiveTickerService.updateAodNotification(this)
         handler.post(tickRunnable)
     }
 
@@ -91,17 +92,20 @@ class MainActivity : Activity() {
         val switchBefore = findViewById<Switch>(R.id.switch_remind_before)
         val switchAfter = findViewById<Switch>(R.id.switch_remind_after)
         val switchHaptic = findViewById<Switch>(R.id.switch_haptic)
+        val switchAod = findViewById<Switch>(R.id.switch_aod_ticker)
         val btnTest = findViewById<Button>(R.id.btn_test_reminder)
 
         val masterEnabled = sp.getBoolean(PrayerScheduler.KEY_REMINDERS_ENABLED, true)
         val beforeEnabled = sp.getBoolean(PrayerScheduler.KEY_REMIND_BEFORE, true)
         val afterEnabled = sp.getBoolean(PrayerScheduler.KEY_REMIND_AFTER, true)
         val hapticEnabled = sp.getBoolean(PrayerScheduler.KEY_HAPTIC_ENABLED, true)
+        val aodEnabled = sp.getBoolean(PrayerLiveTickerService.KEY_AOD_ENABLED, false)
 
         switchMaster?.isChecked = masterEnabled
         switchBefore?.isChecked = beforeEnabled
         switchAfter?.isChecked = afterEnabled
         switchHaptic?.isChecked = hapticEnabled
+        switchAod?.isChecked = aodEnabled
 
         fun updateSubswitches(enabled: Boolean) {
             switchBefore?.isEnabled = enabled
@@ -132,6 +136,19 @@ class MainActivity : Activity() {
 
         switchHaptic?.setOnCheckedChangeListener { _, isChecked ->
             sp.edit().putBoolean(PrayerScheduler.KEY_HAPTIC_ENABLED, isChecked).apply()
+        }
+
+        switchAod?.setOnCheckedChangeListener { _, isChecked ->
+            sp.edit().putBoolean(PrayerLiveTickerService.KEY_AOD_ENABLED, isChecked).apply()
+            if (isChecked) {
+                checkNotificationPermission()
+            }
+            PrayerLiveTickerService.updateAodNotification(this)
+            Toast.makeText(
+                this,
+                if (isChecked) "Lock Screen & AOD Ticker Enabled" else "Lock Screen & AOD Ticker Disabled",
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         btnTest?.setOnClickListener {
@@ -231,6 +248,8 @@ class MainActivity : Activity() {
         findViewById<TextView>(R.id.tv_remind_before_label)?.setTextColor(colorTextSecondary)
         findViewById<TextView>(R.id.tv_remind_after_label)?.setTextColor(colorTextSecondary)
         findViewById<TextView>(R.id.tv_haptic_label)?.setTextColor(colorTextSecondary)
+        findViewById<TextView>(R.id.tv_aod_label)?.setTextColor(colorTextPrimary)
+        findViewById<TextView>(R.id.tv_aod_sublabel)?.setTextColor(colorTextSecondary)
 
         val btnTest = findViewById<Button>(R.id.btn_test_reminder)
         btnTest?.setBackgroundResource(if (isCream) R.drawable.button_outline_bg_cream else R.drawable.button_outline_bg)
@@ -344,6 +363,7 @@ class MainActivity : Activity() {
         findViewById<TextView>(R.id.tv_hero_prayer_time)?.text = "at $targetTimeStr"
 
         updateCountdown()
+        PrayerLiveTickerService.updateAodNotification(this)
 
         // Update schedule rows
         val schedule = nextPrayer.schedule

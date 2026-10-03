@@ -177,6 +177,7 @@ class PrayerWidget : AppWidgetProvider() {
         }
 
         mgr.updateAppWidget(ids, views)
+        PrayerLiveTickerService.updateAodNotification(context)
     }
 
     private fun scheduleNextAlarm(context: Context, triggerAtMillis: Long) {
