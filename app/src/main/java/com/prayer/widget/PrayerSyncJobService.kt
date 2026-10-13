@@ -44,7 +44,6 @@ class PrayerSyncJobService : JobService() {
             val builder = JobInfo.Builder(JOB_ID_IMMEDIATE, component)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY) // Runs as soon as online!
                 .setMinimumLatency(1000L) // Execute right after network connects
-                .setPersisted(true)
 
             js.schedule(builder.build())
         }

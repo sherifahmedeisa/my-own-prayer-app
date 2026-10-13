@@ -31,7 +31,8 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log || { echo "=== GRADLE ERROR ==="; cat build.log | grep -E "e: |Error|FAILED|exception" -C 3 | tail -n 60; exit 1; }
 
       - name: Prepare APK file
         run: |
