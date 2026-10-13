@@ -51,7 +51,7 @@ class PrayerSyncJobService : JobService() {
 
     private var workerThread: Thread? = null
 
-    override fun onStartJob(params: JobParameters?): Boolean {
+    override fun onStartJob(params: JobParameters): Boolean {
         workerThread = Thread {
             try {
                 // 1. Try to refresh location if GPS/network permission is granted
@@ -87,7 +87,7 @@ class PrayerSyncJobService : JobService() {
         return true // Work is ongoing asynchronously on background thread
     }
 
-    override fun onStopJob(params: JobParameters?): Boolean {
+    override fun onStopJob(params: JobParameters): Boolean {
         workerThread?.interrupt()
         return true // Reschedule if cancelled before completion
     }
