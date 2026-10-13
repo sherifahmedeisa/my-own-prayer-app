@@ -1,6 +1,7 @@
 package com.prayer.widget
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
@@ -21,6 +22,7 @@ object LocationHelper {
      * Attempts to read device location and update PrayerRepository.
      * Returns true if a fresh device location was successfully detected.
      */
+    @SuppressLint("MissingPermission")
     fun updateDeviceLocation(context: Context): Boolean {
         if (!hasLocationPermission(context)) return false
 
