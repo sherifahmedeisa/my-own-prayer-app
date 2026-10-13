@@ -32,7 +32,16 @@ jobs:
 
       - name: Build Release APK
         run: |
-          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log || { echo "=== GRADLE ERROR ==="; cat build.log | grep -E "e: |Error|FAILED|exception" -C 3 | tail -n 60; exit 1; }
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Save and push build log on failure
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f build.log
+          git commit -m "chore: save build.log [skip ci]" || echo "No log"
+          git push origin main || echo "Push skipped"
 
       - name: Prepare APK file
         run: |
