@@ -35,16 +35,11 @@ jobs:
           set -o pipefail
           ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
 
-      - name: Save and push build log on failure
+      - name: Show build error on failure
         if: failure()
         run: |
           echo "=== BUILD LOG FAILURE ==="
           tail -n 120 build.log
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f build.log
-          git commit -m "chore: save build.log [skip ci]" || echo "No changes"
-          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main
 
       - name: Prepare APK file
         run: |
