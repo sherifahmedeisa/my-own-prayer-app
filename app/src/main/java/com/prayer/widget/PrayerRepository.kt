@@ -216,14 +216,15 @@ object PrayerRepository {
                 }.getOrNull()
             }
             if (ms == null && timesObj != null && timesObj.has(p)) {
-                runCatching {
+                ms = runCatching {
                     val d = LocalDate.parse(dateStr)
                     val t = LocalTime.parse(timesObj.getString(p))
-                    ms = d.atTime(t).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                }
+                    d.atTime(t).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                }.getOrNull()
             }
-            if (ms != null) {
-                map[p] = ms
+            val validMs = ms
+            if (validMs != null) {
+                map[p] = validMs
             }
         }
 
