@@ -122,8 +122,15 @@ class PrayerWidget : AppWidgetProvider() {
             val zone = ZoneId.systemDefault()
             val timeFormatter = DateTimeFormatter.ofPattern("h:mm")
 
-            // Title
-            views.setTextViewText(R.id.widget_title, "Prayer Times · ${PrayerConfig.CITY_NAME.split(",")[0]}")
+            // Title with dynamic city name
+            val cityName = PrayerRepository.getCityName(context).split(",")[0].trim()
+            views.setTextViewText(R.id.widget_title, "Prayer Times · $cityName")
+
+            // Ensure daily background sync is registered
+            PrayerSyncJobService.scheduleDailySync(context)
+            if (!PrayerRepository.isNetworkAvailable(context) && !PrayerRepository.isSyncedForDate(context, java.time.LocalDate.now())) {
+                PrayerSyncJobService.scheduleImmediateOnlineSync(context)
+            }
 
             // Next label
             val enName = PrayerConfig.EN_NAMES[nextName] ?: nextName.replaceFirstChar { it.uppercase() }

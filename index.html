@@ -591,12 +591,15 @@ body {
 
   <!-- Offline & Manual Sync -->
   <section class="action-box">
+    <button class="btn-outline" id="btn-location-now" style="margin-top:0; margin-bottom:8px;">
+      <span>📍 Use My Location (GPS)</span>
+    </button>
     <button class="btn-outline" id="btn-sync-now" style="margin-top:0;">
-      <span>↻ Refresh 30-Day UmmahAPI Sync</span>
+      <span>↻ Sync Now with UmmahAPI</span>
     </button>
     <div style="font-size:0.7rem; color:var(--uw-text3); margin-top:8px; line-height:1.4;">
       Calculation: Egyptian General Authority · Madhab: Shafi.<br>
-      Cached 30 days locally with embedded astronomical engine fallback.
+      Daily auto-fetch: if offline, automatically waits to fetch once online.
     </div>
   </section>
 
@@ -610,9 +613,9 @@ body {
    CONFIGURATION & CONSTANTS
    ======================================================== */
 const CONFIG = {
-  lat: 30.0444,            // Cairo, Egypt
-  lng: 31.2357,
-  city: 'Cairo, Egypt',
+  lat: parseFloat(localStorage.getItem('pt_lat')) || 30.0444,
+  lng: parseFloat(localStorage.getItem('pt_lng')) || 31.2357,
+  city: localStorage.getItem('pt_city') || 'Cairo, Egypt',
   method: 'Egyptian',
   madhab: 'Shafi',
   apiKey: 'umh_3cce13d1ecd2356ee6ddd4ad30e2c8bd4b684a3f',
@@ -700,7 +703,46 @@ const OfflineSolar = {
 const pad = n => String(n).padStart(2, '0');
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+async function syncDailyFromApi(dateStr) {
+  if (!navigator.onLine) return false;
+  try {
+    const url = `https://www.ummahapi.com/api/prayer-times?lat=${CONFIG.lat}&lng=${CONFIG.lng}&date=${dateStr}&method=${CONFIG.method}&madhab=${CONFIG.madhab}&apikey=${CONFIG.apiKey}`;
+    const res = await fetch(url, {
+      headers: { 'X-API-Key': CONFIG.apiKey, 'Accept': 'application/json' }
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    if (!json.success || !json.data) return false;
+
+    const item = json.data;
+    const dt = item.prayer_datetimes || {};
+    const pt = item.prayer_times || {};
+    const times = {};
+
+    for (const p of ORDER) {
+      let ms = dt[p] ? Date.parse(dt[p]) : NaN;
+      if (isNaN(ms) && pt[p]) {
+        const [h, m] = pt[p].split(':').map(Number);
+        const [yy, mo, da] = dateStr.split('-').map(Number);
+        ms = new Date(yy, mo - 1, da, h, m).getTime();
+      }
+      if (!isNaN(ms)) times[p] = ms;
+    }
+
+    if (Object.keys(times).length >= 5) {
+      localStorage.setItem(`pt_day_${dateStr}`, JSON.stringify({ times, source: 'api' }));
+      localStorage.setItem('pt_last_sync', String(Date.now()));
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('Daily sync error:', e);
+    return false;
+  }
+}
+
 async function syncMonthFromApi(year, month) {
+  if (!navigator.onLine) return false;
   try {
     const url = `https://www.ummahapi.com/api/prayer-times/month?lat=${CONFIG.lat}&lng=${CONFIG.lng}&month=${month}&year=${year}&method=${CONFIG.method}&madhab=${CONFIG.madhab}&apikey=${CONFIG.apiKey}`;
     const res = await fetch(url, {
@@ -708,9 +750,12 @@ async function syncMonthFromApi(year, month) {
     });
     if (!res.ok) return false;
     const json = await res.json();
-    if (!json.success || !Array.isArray(json.data)) return false;
+    if (!json.success || !json.data) return false;
 
-    for (const item of json.data) {
+    const daysList = Array.isArray(json.data) ? json.data : (json.data.days || []);
+    if (!daysList || !daysList.length) return false;
+
+    for (const item of daysList) {
       const ds = item.date;
       const dt = item.prayer_datetimes || {};
       const pt = item.prayer_times || {};
@@ -746,14 +791,23 @@ function getDayTimes(date) {
     try {
       const cached = JSON.parse(cachedStr);
       if (cached && cached.times && Object.keys(cached.times).length >= 5) {
-        return { times: cached.times, source: cached.source || 'api' };
+        if (cached.source === 'api') {
+          return { times: cached.times, source: 'api' };
+        }
+        if (navigator.onLine) {
+          syncDailyFromApi(ds).then(ok => { if (ok) renderUI(); });
+        }
+        return { times: cached.times, source: cached.source || 'offline' };
       }
     } catch {}
   }
 
   // Pure Offline fallback
-  const calculated = OfflineSolar.calculate(date);
+  const calculated = OfflineSolar.calculate(date, CONFIG.lat, CONFIG.lng);
   localStorage.setItem(`pt_day_${ds}`, JSON.stringify({ times: calculated, source: 'offline' }));
+  if (navigator.onLine) {
+    syncDailyFromApi(ds).then(ok => { if (ok) renderUI(); });
+  }
   return { times: calculated, source: 'offline' };
 }
 
@@ -779,13 +833,18 @@ function renderUI() {
   // Header Subtitle & Date
   const dateOptions = { weekday: 'long', month: 'short', day: 'numeric' };
   $('date-text').textContent = today.toLocaleDateString('en-US', dateOptions);
+  if ($('loc-text')) $('loc-text').textContent = CONFIG.city;
 
+  const cityName = CONFIG.city.split(',')[0].trim();
   if (data.source === 'api') {
     $('sync-dot').style.background = '#4ade80';
-    $('sync-text').textContent = 'Synced with UmmahAPI';
+    $('sync-text').textContent = `● Synced with UmmahAPI · ${cityName}`;
+  } else if (navigator.onLine) {
+    $('sync-dot').style.background = '#60a5fa';
+    $('sync-text').textContent = `● Updating with UmmahAPI · ${cityName}...`;
   } else {
     $('sync-dot').style.background = '#f5c030';
-    $('sync-text').textContent = 'Offline Mode (Calculated)';
+    $('sync-text').textContent = `⚠ Offline · Waiting for connection to update ${cityName}`;
   }
 
   // Build prayers table
@@ -888,18 +947,81 @@ const urlTheme = new URLSearchParams(location.search).get('theme');
 setTheme(urlTheme || localStorage.getItem('pt_theme') || 'dark');
 
 /* ========================================================
-   MANUAL SYNC TRIGGER
+   LOCATION DETECTION & MANUAL SYNC
    ======================================================== */
+async function detectLocation() {
+  if (!('geolocation' in navigator)) {
+    alert('Geolocation is not supported by your browser.');
+    return;
+  }
+  const btn = $('btn-location-now');
+  if (btn) btn.textContent = '📍 Detecting GPS location...';
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    CONFIG.lat = lat;
+    CONFIG.lng = lng;
+    localStorage.setItem('pt_lat', String(lat));
+    localStorage.setItem('pt_lng', String(lng));
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        const geo = await res.json();
+        const city = geo.address.city || geo.address.town || geo.address.village || geo.address.county || geo.address.state || 'Local Area';
+        const country = geo.address.country || '';
+        CONFIG.city = country ? `${city}, ${country}` : city;
+      } else {
+        CONFIG.city = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+      }
+    } catch {
+      CONFIG.city = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+    }
+    localStorage.setItem('pt_city', CONFIG.city);
+    if ($('loc-text')) $('loc-text').textContent = CONFIG.city;
+
+    if (btn) btn.textContent = '✓ Updated: ' + CONFIG.city;
+    setTimeout(() => { if (btn) btn.textContent = '📍 Use My Location (GPS)'; }, 3500);
+
+    const now = new Date();
+    await syncDailyFromApi(dateKey(now));
+    await syncMonthFromApi(now.getFullYear(), now.getMonth() + 1);
+    renderUI();
+  }, (err) => {
+    console.warn('Geolocation error:', err);
+    if (btn) btn.textContent = '📍 Use My Location (GPS)';
+    alert('Could not retrieve location: ' + err.message);
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+if ($('btn-location-now')) {
+  $('btn-location-now').onclick = detectLocation;
+}
+
 $('btn-sync-now').onclick = async () => {
   const btn = $('btn-sync-now');
   btn.disabled = true;
-  btn.textContent = 'Syncing full month with UmmahAPI...';
+
+  if (!navigator.onLine) {
+    btn.disabled = false;
+    btn.textContent = '⚠ Offline: will sync once online';
+    setTimeout(() => { btn.textContent = '↻ Sync Now with UmmahAPI'; }, 3000);
+    renderUI();
+    return;
+  }
+
+  btn.textContent = 'Syncing with UmmahAPI...';
   const now = new Date();
-  const ok = await syncMonthFromApi(now.getFullYear(), now.getMonth() + 1);
+  const dailyOk = await syncDailyFromApi(dateKey(now));
+  const monthOk = await syncMonthFromApi(now.getFullYear(), now.getMonth() + 1);
+  const ok = dailyOk || monthOk;
   btn.disabled = false;
   btn.textContent = ok ? '✓ Synced with UmmahAPI' : '✓ Offline calculations ready';
   renderUI();
-  setTimeout(() => { btn.textContent = '↻ Refresh 30-Day UmmahAPI Sync'; }, 3000);
+  setTimeout(() => { btn.textContent = '↻ Sync Now with UmmahAPI'; }, 3000);
 };
 
 /* ========================================================
@@ -1070,10 +1192,26 @@ renderUI();
 startTimer();
 Reminders.init();
 
-// Proactively sync month in background if online
+// Online / Offline connectivity listeners (auto-wait and fetch when online)
+window.addEventListener('online', async () => {
+  console.log('Device is online! Syncing UmmahAPI for', CONFIG.city);
+  const now = new Date();
+  await syncDailyFromApi(dateKey(now));
+  await syncMonthFromApi(now.getFullYear(), now.getMonth() + 1);
+  renderUI();
+});
+
+window.addEventListener('offline', () => {
+  console.log('Device is offline. Waiting for connection...');
+  renderUI();
+});
+
+// Proactively sync daily & month in background if online
 if (navigator.onLine) {
   const now = new Date();
-  syncMonthFromApi(now.getFullYear(), now.getMonth() + 1).then(() => renderUI());
+  syncDailyFromApi(dateKey(now)).then(() => {
+    syncMonthFromApi(now.getFullYear(), now.getMonth() + 1).then(() => renderUI());
+  });
 }
 </script>
 </body>

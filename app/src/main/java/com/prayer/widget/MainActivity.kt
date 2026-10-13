@@ -48,8 +48,12 @@ class MainActivity : Activity() {
         applyTheme(currentTheme)
         loadData()
 
-        // Ensure reminders are scheduled
+        // Ensure daily background sync job and reminders are scheduled
+        PrayerSyncJobService.scheduleDailySync(this)
         PrayerScheduler.scheduleReminders(this)
+        if (LocationHelper.hasLocationPermission(this)) {
+            LocationHelper.updateDeviceLocation(this)
+        }
     }
 
     override fun onResume() {
@@ -62,11 +66,15 @@ class MainActivity : Activity() {
         }
         loadData()
         PrayerLiveTickerService.updateAodNotification(this)
+        PrayerNetworkMonitor.register(this) {
+            runOnUiThread { loadData() }
+        }
         handler.post(tickRunnable)
     }
 
     override fun onPause() {
         super.onPause()
+        PrayerNetworkMonitor.unregister(this)
         handler.removeCallbacks(tickRunnable)
     }
 
@@ -77,6 +85,10 @@ class MainActivity : Activity() {
 
         findViewById<Button>(R.id.btn_sync)?.setOnClickListener {
             syncData()
+        }
+
+        findViewById<Button>(R.id.btn_location)?.setOnClickListener {
+            detectLocationAndSync()
         }
 
         findViewById<Button>(R.id.btn_theme_toggle)?.setOnClickListener {
@@ -167,6 +179,37 @@ class MainActivity : Activity() {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
             }
+        }
+    }
+
+    private fun detectLocationAndSync() {
+        if (!LocationHelper.hasLocationPermission(this)) {
+            requestPermissions(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                201
+            )
+            return
+        }
+
+        val updated = LocationHelper.updateDeviceLocation(this)
+        val city = PrayerRepository.getCityName(this)
+        if (updated) {
+            Toast.makeText(this, "Location updated: $city", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Current location: $city", Toast.LENGTH_SHORT).show()
+        }
+        syncData()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 201 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            LocationHelper.updateDeviceLocation(this)
+            Toast.makeText(this, "Location permission granted: ${PrayerRepository.getCityName(this)}", Toast.LENGTH_SHORT).show()
+            syncData()
         }
     }
 
@@ -270,6 +313,10 @@ class MainActivity : Activity() {
         val cardActions = findViewById<View>(R.id.card_actions)
         cardActions?.setBackgroundResource(if (isCream) R.drawable.card_bg_cream else R.drawable.card_bg)
 
+        val btnLocation = findViewById<Button>(R.id.btn_location)
+        btnLocation?.setBackgroundResource(if (isCream) R.drawable.button_outline_bg_cream else R.drawable.button_outline_bg)
+        btnLocation?.setTextColor(colorGold)
+
         val btnSync = findViewById<Button>(R.id.btn_sync)
         btnSync?.setBackgroundResource(if (isCream) R.drawable.button_outline_bg_cream else R.drawable.button_outline_bg)
         btnSync?.setTextColor(colorGold)
@@ -298,21 +345,41 @@ class MainActivity : Activity() {
         btn?.isEnabled = false
         btn?.text = "Syncing with UmmahAPI..."
 
+        if (!PrayerRepository.isNetworkAvailable(this)) {
+            PrayerSyncJobService.scheduleImmediateOnlineSync(this)
+            val city = PrayerRepository.getCityName(this)
+            btn?.isEnabled = true
+            btn?.text = "↻ Sync Now with UmmahAPI"
+            Toast.makeText(
+                this,
+                "Offline: will automatically fetch prayer times for $city once internet reconnects!",
+                Toast.LENGTH_LONG
+            ).show()
+            loadData()
+            return
+        }
+
         Thread {
             val today = LocalDate.now()
-            val success = PrayerRepository.syncMonth(this, today.year, today.monthValue)
+            LocationHelper.updateDeviceLocation(this)
+            val dailySuccess = PrayerRepository.syncDaily(this, today)
+            PrayerRepository.syncDaily(this, today.plusDays(1))
+            val monthSuccess = PrayerRepository.syncMonth(this, today.year, today.monthValue)
+            val success = dailySuccess || monthSuccess
 
             // Trigger widget refresh and reschedule reminders
             sendBroadcast(Intent(this, PrayerWidget::class.java).setAction(PrayerWidget.ACTION_REFRESH))
+            PrayerLiveTickerService.updateAodNotification(this)
             PrayerScheduler.scheduleReminders(this)
 
             runOnUiThread {
                 btn?.isEnabled = true
-                btn?.text = "↻ Sync Month from UmmahAPI"
+                btn?.text = "↻ Sync Now with UmmahAPI"
+                val city = PrayerRepository.getCityName(this)
                 if (success) {
-                    Toast.makeText(this, "Successfully synced 30-day prayer times!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Successfully synced with UmmahAPI for $city!", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this, "Sync completed (offline fallback ready).", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Sync completed (offline calculations ready).", Toast.LENGTH_SHORT).show()
                 }
                 loadData()
             }
@@ -348,8 +415,12 @@ class MainActivity : Activity() {
         val bgActiveCard = if (isCream) R.drawable.card_active_bg_cream else R.drawable.card_active_bg
 
         // Subtitle & Status
-        findViewById<TextView>(R.id.tv_subtitle)?.text = "${PrayerConfig.CITY_NAME} · ${today.format(dateFormatter)}"
+        val cityName = PrayerRepository.getCityName(this)
+        val lat = PrayerRepository.getLatitude(this)
+        val lng = PrayerRepository.getLongitude(this)
+        findViewById<TextView>(R.id.tv_subtitle)?.text = "$cityName · ${today.format(dateFormatter)}"
         findViewById<TextView>(R.id.tv_sync_badge)?.text = syncStatus
+        findViewById<TextView>(R.id.tv_info)?.text = "Location: $cityName (${String.format(Locale.US, "%.4f", lat)}, ${String.format(Locale.US, "%.4f", lng)})\nDaily sync: Auto-waits for internet when offline."
 
         // Next prayer info
         nextPrayerAt = nextPrayer.at

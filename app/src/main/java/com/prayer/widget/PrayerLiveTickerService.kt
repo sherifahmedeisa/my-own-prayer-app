@@ -69,8 +69,11 @@ object PrayerLiveTickerService {
             Notification.Builder(context)
         }
 
+        val cityName = PrayerRepository.getCityName(context).split(",")[0].trim()
+        val statusText = if (nextInfo.isFromApi) "UmmahAPI · $cityName" else "Offline · $cityName"
+
         builder.setContentTitle("Next: $enName · $arName (at $targetTimeStr)")
-            .setContentText("Prayer times live countdown")
+            .setContentText(statusText)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(openIntent)
             .setOngoing(true)

@@ -35,6 +35,7 @@ class PrayerNotificationReceiver : BroadcastReceiver() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_DATE_CHANGED -> {
                 PrayerScheduler.scheduleReminders(context)
+                PrayerSyncJobService.scheduleDailySync(context)
                 return
             }
             PrayerScheduler.ACTION_PRAYER_BEFORE,
