@@ -10,3 +10,4 @@
 .cxx
 *.aab
 !PrayerTimes.apk
+scratch/
