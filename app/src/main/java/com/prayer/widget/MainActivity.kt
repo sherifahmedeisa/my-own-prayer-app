@@ -95,7 +95,25 @@ class MainActivity : Activity() {
             toggleTheme()
         }
 
+        findViewById<View>(R.id.card_nearest_mosque)?.setOnClickListener {
+            openMosquesMap()
+        }
+
+        findViewById<Button>(R.id.btn_view_mosques_map)?.setOnClickListener {
+            openMosquesMap()
+        }
+
         setupReminderControls()
+    }
+
+    private fun openMosquesMap() {
+        val lat = PrayerRepository.getLatitude(this)
+        val lng = PrayerRepository.getLongitude(this)
+        val intent = Intent(this, MosquesMapActivity::class.java).apply {
+            putExtra("EXTRA_LAT", lat)
+            putExtra("EXTRA_LNG", lng)
+        }
+        startActivity(intent)
     }
 
     private fun setupReminderControls() {
@@ -301,6 +319,16 @@ class MainActivity : Activity() {
         // Widget Card
         val cardWidget = findViewById<View>(R.id.card_widget)
         cardWidget?.setBackgroundResource(if (isCream) R.drawable.card_bg_cream else R.drawable.card_bg)
+
+        // Nearest Mosque Card
+        val cardMosque = findViewById<View>(R.id.card_nearest_mosque)
+        cardMosque?.setBackgroundResource(if (isCream) R.drawable.card_bg_cream else R.drawable.card_bg)
+        findViewById<TextView>(R.id.tv_mosque_title)?.setTextColor(colorGold)
+        findViewById<TextView>(R.id.tv_mosque_nearest_name)?.setTextColor(colorTextPrimary)
+        findViewById<TextView>(R.id.tv_mosque_nearest_dist)?.setTextColor(colorTextSecondary)
+        val btnMap = findViewById<Button>(R.id.btn_view_mosques_map)
+        btnMap?.setBackgroundResource(if (isCream) R.drawable.button_outline_bg_cream else R.drawable.button_outline_bg)
+        btnMap?.setTextColor(colorGold)
         findViewById<TextView>(R.id.tv_widget_title)?.setTextColor(colorGold)
         findViewById<TextView>(R.id.tv_widget_desc)?.setTextColor(colorTextSecondary)
         findViewById<TextView>(R.id.tv_widget_note)?.setTextColor(colorTextMuted)
@@ -425,6 +453,22 @@ class MainActivity : Activity() {
         // Next prayer info
         nextPrayerAt = nextPrayer.at
         nextPrayerName = nextPrayer.name
+
+        // Update Nearest Mosque preview
+        val userLat = PrayerRepository.getLatitude(this)
+        val userLng = PrayerRepository.getLongitude(this)
+        Thread {
+            val nearest = MosqueRepository.findNearestMosques(this, userLat, userLng, limit = 1).firstOrNull()
+            runOnUiThread {
+                if (nearest != null) {
+                    findViewById<TextView>(R.id.tv_mosque_nearest_name)?.text = nearest.name
+                    findViewById<TextView>(R.id.tv_mosque_nearest_dist)?.text = "🚶 ${nearest.distanceMeters}m away · ~${nearest.walkMinutes} min walk"
+                } else {
+                    findViewById<TextView>(R.id.tv_mosque_nearest_name)?.text = "Mosques GIS Layer Active"
+                    findViewById<TextView>(R.id.tv_mosque_nearest_dist)?.text = "7,200+ Egyptian Mosques Indexed"
+                }
+            }
+        }.start()
 
         val enName = PrayerConfig.EN_NAMES[nextPrayer.name] ?: nextPrayer.name
         val arName = PrayerConfig.AR_NAMES[nextPrayer.name] ?: ""

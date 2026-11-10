@@ -1,8 +1,9 @@
 /* Offline-first Service Worker for Prayer Times */
-const CACHE_NAME = 'prayer-times-v2';
+const CACHE_NAME = 'prayer-times-v3';
 const APP_SHELL = [
   './',
   'index.html',
+  'mosques.json',
   'manifest.webmanifest',
   'icon-192.png',
   'icon-512.png'

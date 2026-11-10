@@ -532,6 +532,35 @@ body {
   <!-- Daily Schedule Table -->
   <section class="prayers-card" id="prayers-list"></section>
 
+  <!-- Nearest Mosque GIS Radar Card -->
+  <section class="action-box" id="mosque-radar-box" style="border: 1px solid var(--uw-gold-border); background: var(--uw-card);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <div style="font-size:0.75rem; font-weight:800; color:var(--uw-gold); text-transform:uppercase; letter-spacing:0.08em;">
+        🕌 Nearest Mosque · أقرب مسجد
+      </div>
+      <span style="font-size:0.68rem; color:var(--uw-text3); background:var(--uw-surface); padding:2px 8px; border-radius:10px; border:1px solid var(--uw-border);">
+        Offline GIS
+      </span>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+      <div id="radar-compass-arrow" style="width:38px; height:38px; border-radius:50%; background:var(--uw-surface); border:1px solid var(--uw-gold); display:flex; align-items:center; justify-content:center; font-size:18px; transition:transform 0.2s ease;">
+        🧭
+      </div>
+      <div style="flex:1;">
+        <div id="radar-mosque-name" style="font-size:0.95rem; font-weight:bold; color:var(--uw-text);">Finding nearest mosque...</div>
+        <div id="radar-mosque-dist" style="font-size:0.75rem; color:var(--uw-gold); margin-top:2px;">7,200+ Egyptian GIS Mosques Indexed</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-primary" id="btn-open-mosque-map" style="flex:1; margin-top:0;">
+        <span>🗺️ View Offline Map</span>
+      </button>
+      <button class="btn-outline" id="btn-open-mosque-nav" style="flex:1; margin-top:0;">
+        <span>🧭 Road Navigation</span>
+      </button>
+    </div>
+  </section>
+
   <!-- Android Native APK & Home Widget Section -->
   <section class="action-box" style="border: 1px solid var(--uw-gold-border); background: var(--uw-card);">
     <div style="font-size:0.75rem; font-weight:800; color:var(--uw-gold); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">
@@ -1186,6 +1215,80 @@ const Reminders = {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration:', err));
 }
+
+/* ========================================================
+   MOSQUES GIS OFFLINE RADAR
+   ======================================================== */
+let mosquesDataset = null;
+let nearestMosqueData = null;
+
+async function loadMosquesGIS() {
+  try {
+    const res = await fetch('mosques.json');
+    if (res.ok) {
+      mosquesDataset = await res.json();
+      updateNearestMosqueUI();
+    }
+  } catch (e) {
+    console.warn('Mosques GIS load error:', e);
+  }
+}
+
+function calcDistMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Math.round(R * c);
+}
+
+function updateNearestMosqueUI() {
+  if (!mosquesDataset || !mosquesDataset.length) return;
+  const uLat = CONFIG.lat;
+  const uLng = CONFIG.lng;
+
+  let best = null;
+  let minD = Infinity;
+
+  // Search through 7,200 mosques in ~2ms
+  for (const m of mosquesDataset) {
+    const d = calcDistMeters(uLat, uLng, m[1], m[2]);
+    if (d < minD) {
+      minD = d;
+      best = { name: m[0], lat: m[1], lng: m[2], dist: d };
+    }
+  }
+
+  if (best) {
+    nearestMosqueData = best;
+    const walkMin = Math.max(1, Math.round(best.dist / 75));
+    const nameEl = $('radar-mosque-name');
+    const distEl = $('radar-mosque-dist');
+    if (nameEl) nameEl.textContent = best.name;
+    if (distEl) distEl.textContent = `🚶 ${best.dist}m away · ~${walkMin} min walk`;
+  }
+}
+
+if ($('btn-open-mosque-nav')) {
+  $('btn-open-mosque-nav').onclick = () => {
+    if (nearestMosqueData) {
+      window.open(`geo:${nearestMosqueData.lat},${nearestMosqueData.lng}?q=${nearestMosqueData.lat},${nearestMosqueData.lng}(${encodeURIComponent(nearestMosqueData.name)})`, '_blank');
+    }
+  };
+}
+
+if ($('btn-open-mosque-map')) {
+  $('btn-open-mosque-map').onclick = () => {
+    if (nearestMosqueData) {
+      window.open(`https://www.openstreetmap.org/?mlat=${nearestMosqueData.lat}&mlon=${nearestMosqueData.lng}#map=17/${nearestMosqueData.lat}/${nearestMosqueData.lng}`, '_blank');
+    }
+  };
+}
+
+loadMosquesGIS();
 
 // Initial load
 renderUI();

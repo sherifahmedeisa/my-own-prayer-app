@@ -27,6 +27,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".MosquesMapActivity"
+            android:exported="false"
+            android:label="Nearest Mosque Map" />
+
         <receiver
             android:name=".PrayerWidget"
             android:exported="true">
